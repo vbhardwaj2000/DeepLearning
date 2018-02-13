@@ -22,7 +22,7 @@ input_placeholder = None # replace with your code
 ## Neural network hidden layers
 
 
-## Logit layer
+## Logit layer.
 logits = None # replace with your code
 
 
