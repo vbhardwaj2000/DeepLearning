@@ -23,17 +23,21 @@ input_placeholder = tf.placeholder(tf.float32, shape=[None, 113]) # replace with
 
 
 #Hidden layers 1  (shape -->num of neurons coming in, 150  neurons)
-weight1 = tf.get_variable("weight1", shape=[113, 150], initializer=tf.contrib.layers.xavier_initializer())
-bias1 = tf.get_variable("bias1", shape=[150], initializer=tf.contrib.layers.xavier_initializer())
-hidden_layer1 = tf.nn.relu(tf.matmul(input_placeholder, weight1) + bias1)
+#weight1 = tf.get_variable("weight1", shape=[113, 150], initializer=tf.contrib.layers.xavier_initializer())
+#bias1 = tf.get_variable("bias1", shape=[150], initializer=tf.contrib.layers.xavier_initializer())
+#hidden_layer1 = tf.nn.relu(tf.matmul(input_placeholder, weight1) + bias1)
 
 #Hidden layers 2 125 neurons and 150 coming in
-weight2 = tf.get_variable("weight2", shape=[150, 125], initializer=tf.contrib.layers.xavier_initializer())
-bias2 = tf.get_variable("bias2", shape=[125], initializer=tf.contrib.layers.xavier_initializer())
+#weight2 = tf.get_variable("weight2", shape=[150, 125], initializer=tf.contrib.layers.xavier_initializer())
+#bias2 = tf.get_variable("bias2", shape=[125], initializer=tf.contrib.layers.xavier_initializer())
 
-hidden_layer2 = tf.nn.relu(tf.matmul(hidden_layer1, weight2) + bias2)
+#hidden_layer2 = tf.nn.relu(tf.matmul(hidden_layer1, weight2) + bias2)
 
-hidden_layer3 = tf.layers.dense(hidden_layer2,100,activation=tf.nn.relu)
+hidden_layer_1 = tf.nn.dropout(tf.layers.dense(input_placeholder,100,activation=tf.nn.relu), keep_prob=0.5)
+
+hidden_layer_2 = tf.nn.dropout(tf.layers.dense(hidden_layer_1,100,activation=tf.nn.relu), keep_prob=0.5)
+
+hidden_layer3 = tf.nn.dropout(tf.layers.dense(hidden_layer_2,100,activation=tf.nn.relu), keep_prob=0.5)
 
 ## Logit layer.
 logits = tf.nn.softmax(tf.layers.dense(hidden_layer3, 2, activation=None)) # replace with your code
@@ -47,6 +51,8 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=label_pl
 ## backpropagation algorithm
 train = tf.train.AdamOptimizer().minimize(loss) # replace with your code
 
+# Add ops to save and restore all the variables.
+saver = tf.train.Saver()
 accuracy = dataUtils.accuracy(logits, label_placeholder)
 
 ## Make tensorflow session
@@ -80,6 +86,10 @@ with tf.Session() as sess:
             print("Training accuracy: {} loss: {}".format(training_accuracy, training_loss))
             print("Test accuracy: {} loss: {}".format(test_accuracy, test_loss))
 
+
+        if step_count %  500 == 0:
+            # Save the variables to disk.
+            save_path = saver.save(sess, "/tmp/model.ckpt{}".format(step_count))
 
         # stop training after 1,000 steps
         if step_count > 1000:
