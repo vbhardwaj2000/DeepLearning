@@ -33,14 +33,45 @@ input_placeholder = tf.placeholder(tf.float32, shape=[None, 113]) # replace with
 
 #hidden_layer2 = tf.nn.relu(tf.matmul(hidden_layer1, weight2) + bias2)
 
-hidden_layer_1 = tf.nn.dropout(tf.layers.dense(input_placeholder,100,activation=tf.nn.relu), keep_prob=0.5)
 
-hidden_layer_2 = tf.nn.dropout(tf.layers.dense(hidden_layer_1,100,activation=tf.nn.relu), keep_prob=0.5)
 
-hidden_layer3 = tf.nn.dropout(tf.layers.dense(hidden_layer_2,100,activation=tf.nn.relu), keep_prob=0.5)
+hidden_layer_1 = tf.layers.dense(input_placeholder,100,activation=tf.nn.relu)
+
+hidden_layer_1_with_bn = tf.layers.batch_normalization(hidden_layer_1,
+                                   axis=1,
+                                   center=True,
+                                   scale=False,
+                                   training=True)
+
+hidden_layer_1_with_do = tf.nn.dropout(hidden_layer_1_with_bn,keep_prob=0.5)
+
+hidden_layer_2 = tf.layers.dense(hidden_layer_1_with_do,100,activation=tf.nn.relu)
+
+hidden_layer_2_with_bn = tf.layers.batch_normalization(hidden_layer_2,
+                                   axis=1,
+                                   center=True,
+                                   scale=False,
+                                   training=True)
+
+hidden_layer_2_with_do = tf.nn.dropout(hidden_layer_2_with_bn,keep_prob=0.5)
+#hidden_layer_2 = tf.nn.dropout(tf.layers.dense(hidden_layer_1_with_do,100,activation=tf.nn.relu), keep_prob=0.5)
+
+hidden_layer_3 = tf.layers.dense(hidden_layer_2_with_do,100,activation=tf.nn.relu)
+
+hidden_layer_3_with_bn = tf.layers.batch_normalization(hidden_layer_3,
+                                   axis=1,
+                                   center=True,
+                                   scale=False,
+                                   training=True)
+
+hidden_layer_3_with_do = tf.nn.dropout(hidden_layer_3_with_bn,keep_prob=0.5)
+
+#hidden_layer3 = tf.nn.dropout(tf.layers.dense(hidden_layer_2,100,activation=tf.nn.relu), keep_prob=0.5)
+
+
 
 ## Logit layer.
-logits = tf.nn.softmax(tf.layers.dense(hidden_layer3, 2, activation=None)) # replace with your code
+logits = tf.nn.softmax(tf.layers.dense(hidden_layer_3_with_do, 2, activation=None)) # replace with your code
 
 
 ## label placeholder(100 batch size and output 2]
@@ -54,9 +85,14 @@ train = tf.train.AdamOptimizer().minimize(loss) # replace with your code
 # Add ops to save and restore all the variables.
 saver = tf.train.Saver()
 accuracy = dataUtils.accuracy(logits, label_placeholder)
+tf.summary.scalar('accuracy',accuracy)
+tf.summary.scalar('loss',loss)
+merged = tf.summary.merge_all()
+
 
 ## Make tensorflow session
 with tf.Session() as sess:
+    summary_writer = tf.summary.FileWriter("/tmp/project1",sess.graph)
     ## Initialize variables
     sess.run(tf.global_variables_initializer())
 
@@ -78,9 +114,11 @@ with tf.Session() as sess:
                                                                             batch_size=100)
             #test_accuracy, test_loss = sess.run()
 
-            test_accuracy, test_loss, logits_output = sess.run([accuracy, loss, logits], feed_dict={
+            test_accuracy, test_loss, logits_output,summary_merged = sess.run([accuracy, loss, logits,merged], feed_dict={
                 input_placeholder: batch_test_data,
                 label_placeholder: batch_test_labels})
+
+            summary_writer.add_summary(summary_merged,step_count)
 
             print("Step Count:{}".format(step_count))
             print("Training accuracy: {} loss: {}".format(training_accuracy, training_loss))
